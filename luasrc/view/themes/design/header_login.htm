@@ -34,37 +34,23 @@
 	-- send as HTML5
 	http.prepare_content("text/html")
 
-	math.randomseed(os.time())
+	math.randomseed(tonumber(tostring(os.time()):reverse():sub(1, 9)))
 
 	-- Custom settings
 	local mode = 'normal'
-	local font_weight = '600'
 	local dark_css = fs.readfile('/www/luci-static/design/css/dark.css')
-	local bar_color = '#5ea69b'
+	local bar_color = '#5e72e4'
 	local primary, dark_primary, blur_radius, blur_radius_dark, blur_opacity
 	if fs.access('/etc/config/design') then
 		primary = uci:get_first('design', 'global', 'primary')
 		dark_primary = uci:get_first('design', 'global', 'dark_primary')
-		font_weight = uci:get_first('design', 'global', 'font_weight')
 		blur_radius = uci:get_first('design', 'global', 'blur')
 		blur_radius_dark = uci:get_first('design', 'global', 'blur_dark')
 		blur_opacity = uci:get_first('design', 'global', 'transparency')
 		blur_opacity_dark = uci:get_first('design', 'global', 'transparency_dark')
 		mode = uci:get_first('design', 'global', 'mode')
-		progressbar_font = uci:get_first('design', 'global', 'progressbar_font')
 		bar_color = mode == 'dark' and dark_primary or primary
-		if not progressbar_font then
-			progressbar_font = "#050505"
-		end
-		if font_weight == "normal" then
-			main_left_font_color = "#5f6368"
-		else
-			main_left_font_color = "#69758c"
-		end
 	end
-
-	-- Brand name
-	local brand_name = boardinfo.hostname or "?"
 -%>
 <!DOCTYPE html>
 <html lang="<%=luci.i18n.context.lang%>">
@@ -93,7 +79,7 @@
 	<link rel="icon" type="image/png" sizes="32x32" href="<%=media%>/icon/favicon-32x32.png">
 	<link rel="icon" type="image/png" sizes="96x96" href="<%=media%>/icon/favicon-96x96.png">
 	<link rel="icon" type="image/png" sizes="16x16" href="<%=media%>/icon/favicon-16x16.png">
-	<link rel="manifest" href="<%=media%>/icon/manifest.json"  crossorigin="use-credentials">
+	<link rel="manifest" href="<%=media%>/icon/manifest.json" crossorigin="use-credentials">
 	<meta name="msapplication-TileColor" content="<%=bar_color%>">
 	<meta name="msapplication-TileImage" content="<%=media%>/icon/ms-icon-144x144.png">
     <% if mode == 'normal' then %>
@@ -110,29 +96,26 @@
     <% elseif mode == 'light' then %>
     <meta name="theme-color" content="<%=bar_color%>">
     <% end -%>
-    <link rel="stylesheet" href="<%=media%>/css/cascade.css<%# ?v=PKG_VERSION %>">
-    <style title="text/css">
-        <% if mode == 'normal' then %>
-            @media (prefers-color-scheme: dark) {
-                <%=dark_css%>
-            }
-        <% elseif mode == 'dark' then %>
-            <%=dark_css%>
-        <% end -%>
-        <% if fs.access('/etc/config/design') then %>
-        :root {
-            --primary: <%=primary%>;
-            --dark-primary: <%=dark_primary%>;
-            --font-weight: <%=font_weight%>;
-            --progressbar-font-color: <%=progressbar_font%>;
-            --blur-radius:<%=blur_radius%>px;
-            --blur-opacity:<%=blur_opacity%>;
-            --blur-radius-dark:<%=blur_radius_dark%>px;
-            --blur-opacity-dark:<%=blur_opacity_dark%>;
-            --main-left-font-color:<%=main_left_font_color%>;
-        }
-        <% end -%>
-    </style>
+	<link rel="stylesheet" href="<%=media%>/css/cascade.css<%# ?v=PKG_VERSION %>">
+	<style title="text/css">
+		<% if mode == 'normal' then %>
+			@media (prefers-color-scheme: dark) {
+				<%=dark_css%>
+			}
+		<% elseif mode == 'dark' then %>
+			<%=dark_css%>
+		<% end -%>
+		<% if fs.access('/etc/config/design') then %>
+		:root {
+			--primary: <%=primary%>;
+			--dark-primary: <%=dark_primary%>;
+			--blur-radius:<%=blur_radius%>px;
+			--blur-opacity:<%=blur_opacity%>;
+			--blur-radius-dark:<%=blur_radius_dark%>px;
+			--blur-opacity-dark:<%=blur_opacity_dark%>;
+		}
+		<% end -%>
+	</style>
 	<link rel="shortcut icon" href="<%=media%>/favicon.ico">
 	<% if node and node.css then %>
 	<link rel="stylesheet" href="<%=resource%>/<%=node.css%>">
@@ -142,66 +125,8 @@
 		<%=css %>
 	</style>
 	<% end -%>
-	<script src="<%=media%>/js/polyfill.min.js"></script>
-	<script src="<%=url('admin/translations', luci.i18n.context.lang)%>?v=<%=ver.luciversion%>"></script>
-	<script src="<%=resource%>/cbi.js?v=<%=ver.luciversion%>"></script>
-	<script src="<%=resource%>/luci.js?v=<%=ver.luciversion%>"></script>
 	<script src="<%=media%>/js/jquery.min.js?v=3.5.1"></script>
+
 </head>
 
-<body
-	class="lang_<%=luci.i18n.context.lang%> <% if node then %><%= striptags( node.title ) %><% end %> <% if luci.dispatcher.context.authsession then %>logged-in<% end %>"
-	data-page="<%= pcdata(table.concat(disp.context.requestpath, "-")) %>">
-
-	<div class="main">
-		<div class="main-left" id="mainmenu" style="display:none">
-			<div class="sidenav-header d-flex align-items-center">
-				<a class="brand" href="/"><%=brand_name%></a>
-				<div class="ml-auto">
-					<!-- Sidenav toggler -->
-					<div class="sidenav-toggler d-none d-xl-block active" data-action="sidenav-unpin"
-						data-target="#sidenav-main">
-						<div class="sidenav-toggler-inner">
-							<i class="sidenav-toggler-line"></i>
-							<i class="sidenav-toggler-line"></i>
-							<i class="sidenav-toggler-line"></i>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-		<div class="main-right">
-			<header class="bg-primary">
-				<div class="fill">
-					<div class="container">
-						<div class="flex1">
-							<a class="showSide"></a>
-							<a class="brand" href="/"><%=brand_name%></a>
-						</div>
-						<div class="status" id="indicators"></div>
-					</div>
-				</div>
-			</header>
-			<div class="darkMask"></div>
-			<div id="maincontent">
-				<div class="container">
-					<%- if luci.sys.process.info("uid") == 0 and luci.sys.user.getuser("root") and not luci.sys.user.getpasswd("root") then -%>
-					<div class="alert-message error">
-						<h4><%:No password set!%></h4>
-						<p><%:There is no password set on this router. Please configure a root password to protect the web interface.%>
-						</p>
-						<% if disp.lookup("admin/system/admin") then %>
-						<div class="right"><a class="btn"
-								href="<%=url("admin/system/admin")%>"><%:Go to password configuration...%></a></div>
-						<% end %>
-					</div>
-					<%- end -%>
-
-					<noscript>
-						<div class="alert-message error">
-							<h4><%:JavaScript required!%></h4>
-							<p><%:You must enable JavaScript in your browser or LuCI will not work properly.%></p>
-						</div>
-					</noscript>
-
-					<div id="tabmenu" style="display:none"></div>
+<body>

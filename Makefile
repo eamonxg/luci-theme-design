@@ -1,14 +1,24 @@
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+#
+# Copyright (C) 2008-2019 Jerrykuku
+#
+# This is free software, licensed under the Apache License, Version 2.0 .
+#
 
 include $(TOPDIR)/rules.mk
 
-LUCI_TITLE:=Design Theme
-LUCI_DEPENDS:=
-PKG_VERSION:=6.0
-PKG_RELEASE:=20230224
+LUCI_TITLE:=Design Theme (Argon Mod)
+LUCI_DEPENDS:=+curl +jsonfilter
+PKG_VERSION:=2.3.3
+PKG_RELEASE:=20250806
+
+define Package/luci-theme-design/postrm
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || {
+	uci -q delete luci.themes.Design
+	uci set luci.main.mediaurlbase='/luci-static/bootstrap'
+	uci commit luci
+}
+endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
 
